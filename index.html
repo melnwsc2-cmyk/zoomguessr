@@ -102,18 +102,15 @@ main{flex:1;display:flex;flex-direction:column;padding:0 0 80px}
 <button class="share-btn" onclick="shareResult()">📤 Поделиться результатом</button>
 <div class="leaderboard-section"><div class="leaderboard-title">🏆 Топ Санкт-Петербурга</div><div id="leaderboard"></div></div>
 </div>
-  </main>
-  <script>
-const YANDEX_KEY = "64884248-e4f6-4612-ae27-c93eff52fe9b";
-const LAT = 59.9341;
-const LNG = 30.3064;
-
+</main>
+<script>
+// Реальные спутниковые снимки Исаакиевского собора через Wikimedia
 const IMAGES = [
-  `https://static-maps.yandex.ru/1.x/?ll=${LNG},${LAT}&z=3&l=sat&size=600,600&apikey=${YANDEX_KEY}`,
-  `https://static-maps.yandex.ru/1.x/?ll=${LNG},${LAT}&z=6&l=sat&size=600,600&apikey=${YANDEX_KEY}`,
-  `https://static-maps.yandex.ru/1.x/?ll=${LNG},${LAT}&z=11&l=sat&size=600,600&apikey=${YANDEX_KEY}`,
-  `https://static-maps.yandex.ru/1.x/?ll=${LNG},${LAT}&z=14&l=sat&size=600,600&apikey=${YANDEX_KEY}`,
-  `https://static-maps.yandex.ru/1.x/?ll=${LNG},${LAT}&z=17&l=sat&size=600,600&apikey=${YANDEX_KEY}`,
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Europe_satellite_orthographic.jpg/600px-Europe_satellite_orthographic.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Russia_-_Satellite_image_-_2001.jpg/600px-Russia_-_Satellite_image_-_2001.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Saint_Petersburg_-_Landsat.jpg/600px-Saint_Petersburg_-_Landsat.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Saint_Petersburg_from_above_2.jpg/600px-Saint_Petersburg_from_above_2.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Saint_Isaac%27s_Cathedral_aerial.jpg/600px-Saint_Isaac%27s_Cathedral_aerial.jpg"
 ];
 
 const LEVELS = [
@@ -124,7 +121,7 @@ const LEVELS = [
   {question:"Что это за достопримечательность?",correct:"Исаакиевский собор",options:["Казанский собор","Петропавловская крепость","Спас на Крови","Исаакиевский собор"]}
 ];
 
-const DEMO_LB = [
+const DEMO_LB=[
   {name:"Алексей К.",score:5,streak:12},
   {name:"Мария Т.",score:5,streak:7},
   {name:"Dmitry_spb",score:4,streak:21},
@@ -144,7 +141,6 @@ function loadLevel(level){
   currentLevel=level;answered=false;
   const img=document.getElementById('sat-img');
   img.src=IMAGES[level];
-  img.onerror=()=>{img.src=`https://picsum.photos/seed/${level}spb/600/600`;};
   document.getElementById('zoom-label').textContent=`УРОВЕНЬ ${level+1}/5`;
   document.getElementById('question-text').textContent=LEVELS[level].question;
   document.querySelectorAll('.step').forEach((s,i)=>{
@@ -168,7 +164,7 @@ function startTimer(){
   bar.style.transition='none';bar.style.width='100%';
   setTimeout(()=>{bar.style.transition='width 20s linear';bar.style.width='0%';},50);
 }
-    function answer(chosen){
+  function answer(chosen){
   if(answered)return;
   answered=true;
   const correct=LEVELS[currentLevel].correct;
