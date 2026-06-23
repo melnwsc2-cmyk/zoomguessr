@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ЗумГадай — угадай место по снимку</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Inter:wght@400;500;600&display=swap');
+:root{--bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;--accent:#7dd3fc;--success:#4ade80;--fail:#f87171;--text:#f0f6ff;--muted:#64748b;--border:#1e2d45}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100dvh;display:flex;flex-direction:column}
+header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:100}
+.logo{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:900;color:var(--text)}.logo span{color:var(--accent)}
+.streak-badge{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--accent)}
+main{flex:1;display:flex;flex-direction:column;padding:0 0 80px}
+.image-zone{position:relative;width:100%;aspect-ratio:1/1;background:var(--surface);overflow:hidden}
+.satellite-img{width:100%;height:100%;object-fit:cover}
+.zoom-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 60%,var(--bg) 100%);pointer-events:none}
+.zoom-indicator{position:absolute;top:12px;left:12px;background:rgba(10,14,26,0.8);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.timer-bar{position:absolute;bottom:0;left:0;height:3px;background:var(--accent);transition:width 1s linear;box-shadow:0 0 8px var(--accent)}
+.level-steps{display:flex;justify-content:center;gap:8px;padding:16px 20px 8px}
+.step{flex:1;max-width:56px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.step-dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;transition:all 0.3s;background:var(--surface)}
+.step.active .step-dot{border-color:var(--accent);background:rgba(125,211,252,0.1);box-shadow:0 0 12px rgba(125,211,252,0.3)}
+.step.correct .step-dot{border-color:var(--success);background:rgba(74,222,128,0.15)}
+.step.wrong .step-dot{border-color:var(--fail);background:rgba(248,113,113,0.15)}
+.step-label{font-size:9px;color:var(--muted);text-align:center;font-weight:500}
+.step.active .step-label{color:var(--accent)}
+.question-block{padding:8px 20px 16px}
+.question-label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-weight:600}
+.question-text{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:700;line-height:1.4}
+.options-grid{padding:0 20px;display:flex;flex-direction:column;gap:10px}
+.option-btn{width:100%;padding:14px 18px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-family:'Inter',sans-serif;font-size:15px;font-weight:500;text-align:left;cursor:pointer;transition:all 0.2s}
+.option-btn:active{transform:scale(0.98)}
+.option-btn.correct{border-color:var(--success);background:rgba(74,222,128,0.1);color:var(--success)}
+.option-btn.wrong{border-color:var(--fail);background:rgba(248,113,113,0.1);color:var(--fail)}
+.option-btn.disabled{opacity:0.4;pointer-events:none}
+.toast{margin:12px 20px 0;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:600;display:none;align-items:center;gap:8px}
+.toast.correct{background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);color:var(--success);display:flex}
+.toast.wrong{background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);color:var(--fail);display:flex}
+.next-btn{margin:16px 20px 0;padding:16px;background:var(--accent);color:var(--bg);border:none;border-radius:14px;font-family:'Unbounded',sans-serif;font-size:14px;font-weight:700;cursor:pointer;display:none;width:calc(100% - 40px)}
+.next-btn.visible{display:block}
+.final-screen{display:none;flex-direction:column;align-items:center;padding:40px 24px;text-align:center;gap:24px}
+.final-screen.visible{display:flex}
+.score-circle{width:120px;height:120px;border-radius:50%;border:3px solid var(--accent);display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(125,211,252,0.05);box-shadow:0 0 40px rgba(125,211,252,0.15)}
+.score-num{font-family:'Unbounded',sans-serif;font-size:36px;font-weight:900;color:var(--accent);line-height:1}
+.score-max{font-size:13px;color:var(--muted);margin-top:2px}
+.final-title{font-family:'Unbounded',sans-serif;font-size:20px;font-weight:900;line-height:1.3}
+.final-subtitle{font-size:14px;color:var(--muted);line-height:1.6}
+.result-grid{width:100%;display:flex;flex-direction:column;gap:8px}
+.result-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface);border-radius:10px;border:1px solid var(--border)}
+.result-row-label{font-size:13px;color:var(--muted)}
+.result-row-val{font-size:13px;font-weight:600}
+.result-row-val.correct{color:var(--success)}.result-row-val.wrong{color:var(--fail)}
+.share-btn{width:100%;padding:16px;background:var(--surface2);border:1.5px solid var(--accent);border-radius:14px;color:var(--accent);font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
+.leaderboard-section{width:100%}
+.leaderboard-title{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;text-align:left}
+.lb-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface);border-radius:10px;border:1px solid var(--border);margin-bottom:6px}
+.lb-row.me{border-color:var(--accent);background:rgba(125,211,252,0.05)}
+.lb-rank{font-family:'Unbounded',sans-serif;font-size:12px;font-weight:700;color:var(--muted);width:20px;text-align:center}
+.lb-rank.gold{color:#fbbf24}.lb-rank.silver{color:#94a3b8}.lb-rank.bronze{color:#d97706}
+.lb-name{flex:1;font-size:14px;font-weight:500}
+.lb-score{font-family:'Unbounded',sans-serif;font-size:13px;font-weight:700;color:var(--accent)}
+.lb-streak{font-size:11px;color:var(--muted)}
+#game-area{display:flex;flex-direction:column}
+#game-area.hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+<div class="logo">Зум<span>Гадай</span></div>
+<div class="streak-badge">🔥 <span id="streak-count">0</span> дней</div>
+</header>
+<main>
+<div id="game-area">
+<div class="image-zone">
+<img class="satellite-img" id="sat-img" src="" alt="Снимок">
+<div class="zoom-overlay"></div>
+<div class="zoom-indicator" id="zoom-label">УРОВЕНЬ 1/5</div>
+<div class="timer-bar" id="timer-bar" style="width:100%"></div>
+</div>
+<div class="level-steps" id="level-steps">
+<div class="step active" data-step="0"><div class="step-dot">🌍</div><div class="step-label">Материк</div></div>
+<div class="step" data-step="1"><div class="step-dot">🏳️</div><div class="step-label">Страна</div></div>
+<div class="step" data-step="2"><div class="step-dot">🏙️</div><div class="step-label">Город</div></div>
+<div class="step" data-step="3"><div class="step-dot">📍</div><div class="step-label">Район</div></div>
+<div class="step" data-step="4"><div class="step-dot">🏛️</div><div class="step-label">Место</div></div>
+</div>
+<div class="question-block">
+<div class="question-label">Угадай</div>
+<div class="question-text" id="question-text"></div>
+</div>
+<div class="options-grid" id="options-grid"></div>
+<div class="toast" id="toast"></div>
+<button class="next-btn" id="next-btn" onclick="nextLevel()">Следующий уровень →</button>
+</div>
+<div class="final-screen" id="final-screen">
+<div class="score-circle"><div class="score-num" id="final-score">0</div><div class="score-max">из 5</div></div>
+<div class="final-title" id="final-title"></div>
+<div class="final-subtitle" id="final-subtitle"></div>
+<div class="result-grid" id="result-grid"></div>
+<button class="share-btn" onclick="shareResult()">📤 Поделиться результатом</button>
+<div class="leaderboard-section"><div class="leaderboard-title">🏆 Топ Санкт-Петербурга</div><div id="leaderboard"></div></div>
+</div>
+  </main>
+  <script>
+const YANDEX_KEY = "64884248-e4f6-4612-ae27-c93eff52fe9b";
+const LAT = 59.9341;
+const LNG = 30.3064;
+
+const IMAGES = [
+  `https://static-maps.yandex.ru/1.x/?ll=${LNG},${LAT}&z=3&l=sat&size=600,600&apikey=${YANDEX_KEY}`,
+  `https://static-maps.yandex.ru/1.x/?ll=${LNG},${LAT}&z=6&l=sat&size=600,600&apikey=${YANDEX_KEY}`,
+  `https://static-maps.yandex.ru/1.x/?ll=${LNG},${LAT}&z=11&l=sat&size=600,600&apikey=${YANDEX_KEY}`,
+  `https://static-maps.yandex.ru/1.x/?ll=${LNG},${LAT}&z=14&l=sat&size=600,600&apikey=${YANDEX_KEY}`,
+  `https://static-maps.yandex.ru/1.x/?ll=${LNG},${LAT}&z=17&l=sat&size=600,600&apikey=${YANDEX_KEY}`,
+];
+
+const LEVELS = [
+  {question:"На каком материке расположено это место?",correct:"Европа",options:["Европа","Азия","Северная Америка","Австралия"]},
+  {question:"В какой стране находится это место?",correct:"Россия",options:["Финляндия","Россия","Германия","Польша"]},
+  {question:"Это какой город?",correct:"Санкт-Петербург",options:["Москва","Новгород","Санкт-Петербург","Псков"]},
+  {question:"Какой район города?",correct:"Адмиралтейский",options:["Петроградский","Центральный","Васильевский","Адмиралтейский"]},
+  {question:"Что это за достопримечательность?",correct:"Исаакиевский собор",options:["Казанский собор","Петропавловская крепость","Спас на Крови","Исаакиевский собор"]}
+];
+
+const DEMO_LB = [
+  {name:"Алексей К.",score:5,streak:12},
+  {name:"Мария Т.",score:5,streak:7},
+  {name:"Dmitry_spb",score:4,streak:21},
+  {name:"Ты",score:0,streak:0,me:true},
+  {name:"Pavel88",score:3,streak:3},
+];
+
+let currentLevel=0,score=0,answers=[],answered=false;
+
+function init(){
+  const streak=parseInt(localStorage.getItem('streak')||'0');
+  document.getElementById('streak-count').textContent=streak;
+  loadLevel(0);
+}
+
+function loadLevel(level){
+  currentLevel=level;answered=false;
+  const img=document.getElementById('sat-img');
+  img.src=IMAGES[level];
+  img.onerror=()=>{img.src=`https://picsum.photos/seed/${level}spb/600/600`;};
+  document.getElementById('zoom-label').textContent=`УРОВЕНЬ ${level+1}/5`;
+  document.getElementById('question-text').textContent=LEVELS[level].question;
+  document.querySelectorAll('.step').forEach((s,i)=>{
+    s.classList.remove('active','correct','wrong');
+    if(i<level&&answers[i]!==undefined)s.classList.add(answers[i]?'correct':'wrong');
+    if(i===level)s.classList.add('active');
+  });
+  const grid=document.getElementById('options-grid');
+  const opts=shuffle([...LEVELS[level].options]);
+  grid.innerHTML=opts.map(o=>`<button class="option-btn" onclick="answer('${o.replace(/'/g,"\\'")}')">${o}</button>`).join('');
+  const toast=document.getElementById('toast');
+  toast.className='toast';toast.style.display='none';
+  const btn=document.getElementById('next-btn');
+  btn.classList.remove('visible');
+  btn.textContent=level===4?'Смотреть результат 🎯':'Следующий уровень →';
+  startTimer();
+}
+
+function startTimer(){
+  const bar=document.getElementById('timer-bar');
+  bar.style.transition='none';bar.style.width='100%';
+  setTimeout(()=>{bar.style.transition='width 20s linear';bar.style.width='0%';},50);
+}
+    function answer(chosen){
+  if(answered)return;
+  answered=true;
+  const correct=LEVELS[currentLevel].correct;
+  const isCorrect=chosen===correct;
+  answers[currentLevel]=isCorrect;
+  if(isCorrect)score++;
+  document.querySelectorAll('.option-btn').forEach(btn=>{
+    if(btn.textContent.trim()===correct)btn.classList.add('correct');
+    else if(btn.textContent.trim()===chosen&&!isCorrect)btn.classList.add('wrong');
+    else btn.classList.add('disabled');
+  });
+  const toast=document.getElementById('toast');
+  toast.className=isCorrect?'toast correct':'toast wrong';
+  toast.innerHTML=isCorrect?'✅ Правильно! +1 очко':`❌ Правильный ответ: ${correct}`;
+  toast.style.display='flex';
+  const step=document.querySelector(`.step[data-step="${currentLevel}"]`);
+  step.classList.remove('active');
+  step.classList.add(isCorrect?'correct':'wrong');
+  document.getElementById('next-btn').classList.add('visible');
+}
+
+function nextLevel(){
+  if(currentLevel<4)loadLevel(currentLevel+1);
+  else showFinal();
+}
+
+function showFinal(){
+  document.getElementById('game-area').classList.add('hidden');
+  const fin=document.getElementById('final-screen');
+  fin.classList.add('visible');
+  document.getElementById('final-score').textContent=score;
+  const titles=['Попробуй ещё раз 🗺️','Неплохо! 🌍','Хорошая геолокация! 📍','Почти эксперт! 🔭','Эксперт города! 🏆','Легенда Петербурга! 🌟'];
+  document.getElementById('final-title').textContent=titles[score];
+  document.getElementById('final-subtitle').textContent=`Санкт-Петербург · ${new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}`;
+  const names=['Материк','Страна','Город','Район','Достопримечательность'];
+  document.getElementById('result-grid').innerHTML=answers.map((a,i)=>`
+    <div class="result-row">
+      <span class="result-row-label">${names[i]}</span>
+      <span class="result-row-val ${a?'correct':'wrong'}">${a?'✓ '+LEVELS[i].correct:'✗ '+LEVELS[i].correct}</span>
+    </div>`).join('');
+  const today=new Date().toDateString();
+  const lastPlay=localStorage.getItem('lastPlay');
+  let streak=parseInt(localStorage.getItem('streak')||'0');
+  const yesterday=new Date(Date.now()-86400000).toDateString();
+  if(lastPlay===yesterday)streak++;
+  else if(lastPlay!==today)streak=1;
+  localStorage.setItem('streak',streak);
+  localStorage.setItem('lastPlay',today);
+  document.getElementById('streak-count').textContent=streak;
+  DEMO_LB[3].score=score;DEMO_LB[3].streak=streak;
+  const sorted=[...DEMO_LB].sort((a,b)=>b.score-a.score||b.streak-a.streak);
+  const rc=['gold','silver','bronze'];
+  document.getElementById('leaderboard').innerHTML=sorted.map((p,i)=>`
+    <div class="lb-row ${p.me?'me':''}">
+      <div class="lb-rank ${rc[i]||''}">${i+1}</div>
+      <div class="lb-name">${p.name}${p.me?' 👤':''}</div>
+      <div><div class="lb-score">${p.score}/5</div><div class="lb-streak">🔥${p.streak}д</div></div>
+    </div>`).join('');
+}
+
+function shareResult(){
+  const emojis=answers.map(a=>a?'🟩':'🟥').join('');
+  const text=`ЗумГадай 🛰️ ${new Date().toLocaleDateString('ru-RU')}\n${emojis} ${score}/5\n🔥 Серия: ${localStorage.getItem('streak')} дней\n\nугадай место по спутнику!`;
+  if(navigator.share)navigator.share({text});
+  else navigator.clipboard.writeText(text).then(()=>alert('Скопировано!'));
+}
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}
+  return arr;
+}
+
+init();
+</script>
+</body>
+</html>
