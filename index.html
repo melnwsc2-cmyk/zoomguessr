@@ -227,7 +227,7 @@ function showFinal(){
 
 function shareResult(){
   const emojis=answers.map(a=>a?'🟩':'🟥').join('');
-  const text=`ЗумГадай 🛰️ ${new Date().toLocaleDateString('ru-RU')}\n${emojis} ${score}/5\n🔥 Серия: ${localStorage.getItem('streak')} дней\n\nугадай место по спутнику!`;
+  const text=`ЗумГадай 🛰️ ${new Date().toLocaleDateString('ru-RU')}\n${emojis} ${score}/5\n🔥 Серия: ${localStorage.getItem('streak')} дней\n\nmelnwsc2-cmyk.github.io/zoomguessr`;
   if(navigator.share)navigator.share({text});
   else navigator.clipboard.writeText(text).then(()=>alert('Скопировано!'));
 }
